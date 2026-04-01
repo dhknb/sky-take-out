@@ -6,6 +6,7 @@ import com.sky.dto.DishPageQueryDTO;
 import com.sky.entity.Dish;
 import com.sky.enumeration.OperationType;
 import com.sky.vo.DishVO;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
@@ -33,6 +34,18 @@ public interface DishMapper {
     void deleteById(Long id);
 
     void deleteByIds(List<Long> ids);
-@AutoFill(value = OperationType.UPDATE)
+
+    @AutoFill(value = OperationType.UPDATE)
     void update(Dish dish);
+
+    /**
+     * 动态条件查询菜品
+     */
+    List<Dish> list(Dish dish);
+
+    /**
+     * 根据套餐id查询菜品
+     */
+    @Select("select d.* from dish d left join setmeal_dish sd on d.id = sd.dish_id where sd.setmeal_id = #{setmealId}")
+    List<Dish> getBySetmealId(Long setmealId);
 }
