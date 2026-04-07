@@ -16,6 +16,7 @@ import com.sky.mapper.SetmealDishMapper;
 import com.sky.mapper.SetmealMapper;
 import com.sky.result.PageResult;
 import com.sky.service.SetmealService;
+import com.sky.vo.DishItemVO;
 import com.sky.vo.SetmealVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -46,13 +47,20 @@ public class SetmealServiceImpl implements SetmealService {
         if (setmeal.getStatus() == null) {
             setmeal.setStatus(StatusConstant.DISABLE);
         }
+
+        // 先插入套餐主表（数据库自增主键），再取回填id
         setmealMapper.insert(setmeal);
 
         // 新增套餐菜品关系
         Long setmealId = setmeal.getId();
+        if (setmealId == null || setmealId <= 0) {
+            throw new RuntimeException("新增套餐失败：未获取到有效套餐ID，请检查setmeal.id是否为自增主键");
+        }
+
+        final Long finalSetmealId = setmealId;
         List<SetmealDish> setmealDishes = setmealDTO.getSetmealDishes();
         if (setmealDishes != null && !setmealDishes.isEmpty()) {
-            setmealDishes.forEach(setmealDish -> setmealDish.setSetmealId(setmealId));
+            setmealDishes.forEach(setmealDish -> setmealDish.setSetmealId(finalSetmealId));
             setmealDishMapper.insertBatch(setmealDishes);
         }
     }
@@ -111,21 +119,27 @@ public class SetmealServiceImpl implements SetmealService {
 
     @Override
     public void startOrStop(Integer status, Long id) {
-        if (StatusConstant.ENABLE.equals(status)) {
-            List<Dish> dishList = dishMapper.getBySetmealId(id);
-            if (dishList != null && !dishList.isEmpty()) {
-                dishList.forEach(dish -> {
-                    if (StatusConstant.DISABLE.equals(dish.getStatus())) {
-                        throw new SetmealEnableFailedException(MessageConstant.SETMEAL_ENABLE_FAILED);
-                    }
-                });
-            }
+        // 按当前联调需求：不校验套餐内菜品是否停售，直接修改套餐售卖状态
+        int rows = setmealMapper.updateStatus(id, status);
+        if (rows != 1) {
+            throw new RuntimeException("套餐状态更新失败，id=" + id);
         }
-
-        Setmeal setmeal = Setmeal.builder()
-                .id(id)
-                .status(status)
-                .build();
-        setmealMapper.update(setmeal);
+    }
+    /**
+     * 条件查询
+     * @param setmeal
+     * @return
+     */
+    public List<Setmeal> list(Setmeal setmeal) {
+        List<Setmeal> list = setmealMapper.list(setmeal);
+        return list;
+    }
+    /**
+     * 根据id查询菜品选项
+     * @param id
+     * @return
+     */
+    public List<DishItemVO> getDishItemById(Long id) {
+        return setmealMapper.getDishItemBySetmealId(id);
     }
 }

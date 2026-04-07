@@ -3,7 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.sky.mapper.SetmealMapper">
 
-    <insert id="insert" parameterType="com.sky.entity.Setmeal" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insert" parameterType="com.sky.entity.Setmeal" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         insert into setmeal
         (category_id, name, price, status, description, image, create_time, update_time, create_user, update_user)
         values (#{categoryId}, #{name}, #{price}, #{status}, #{description}, #{image}, #{createTime}, #{updateTime},
@@ -42,5 +42,19 @@
         </set>
         where id = #{id}
     </update>
+    <select id="list" parameterType="Setmeal" resultType="Setmeal">
+        select * from setmeal
+        <where>
+            <if test="name != null">
+                and name like concat('%',#{name},'%')
+            </if>
+            <if test="categoryId != null">
+                and category_id = #{categoryId}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+    </select>
 
 </mapper>
