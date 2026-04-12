@@ -1,5 +1,6 @@
 package com.sky.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
@@ -27,6 +28,8 @@ import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import com.sky.websocket.WebSocketServer;
+import io.swagger.util.Json;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +39,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,6 +51,8 @@ public class OrderServiceImpl implements OrderService {
     private OrderMapper orderMapper;
 @Autowired
     private OrderDetailMapper orderDetailMapper;
+@Autowired
+private WebSocketServer webSocketServer;
 
     /**
      * 开发环境模拟支付开关：true=下单后直接标记为已支付
@@ -139,6 +146,12 @@ public class OrderServiceImpl implements OrderService {
                 .checkoutTime(LocalDateTime.now())
                 .build();
         orderMapper.update(paidOrder);
+        Map map = new HashMap();
+        map.put("type",1);//1表示来单提醒，0表示客户催单
+        map.put("orderId",order.getId());
+        map.put("content","订单号"+ordersPaymentDTO.getOrderNumber());
+        String jsonString = JSON.toJSONString(map);
+    webSocketServer.sendToAllClient(jsonString);
 
         // 前端兼容：返回模拟支付参数（无需真实支付）
         return OrderPaymentVO.builder()
