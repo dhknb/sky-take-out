@@ -64,4 +64,8 @@ public interface OrderService {
      * 商家完成订单
      */
     void complete(Long id);
+
+
+
+    void reminder(Long id);
 }
